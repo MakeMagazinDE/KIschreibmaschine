@@ -10,7 +10,7 @@ Eine angestaubte DDR-Typenradschreibmaschine aus den 1980er Jahren bekommt einen
 
 ![Aufmacherbild aus dem Heft](./doc/Erika.jpeg)
 
-Hier gibt es einerseits den Code für den ersten testweisen ChatGPT-Zugriff vom ESP32 aus (im Ordner _testchat_) sowie den kompletten Code für mein Projekt _Erika3004_ (im gleichnamigen Ordner).
+Hier gibt es einerseits den Code für den ersten testweisen ChatGPT-Zugriff vom ESP32 aus (im Ordner _testchat_) sowie den kompletten Code für das Projekt _Erika3004_ (im gleichnamigen Ordner).
 
 Für den Betrieb der Schreibmaschine als Chatbot werden noch benötigt: 
 
