@@ -25,7 +25,7 @@ int WiFi_Count;
 
 String token = "xxxx";         // hier openAI API Key eintragen 
 int max_tokens = 256;
-char Nachricht_array[256];
+char Nachricht_array[4196];
 
 String Eingabe = "";
 String Ausgabe = "";
