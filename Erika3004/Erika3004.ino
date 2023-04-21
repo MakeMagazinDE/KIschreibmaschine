@@ -29,7 +29,7 @@ char Nachricht_array[4196];
 
 String Eingabe = "";
 String Ausgabe = "";
-int Zeilenlaenge = 70;
+int Zeilenlaenge = 70; // Verkürzen, falls Zeichen auf dem Ausdruck abgeschnitten werden
 String Feedback = "";
 int Nachricht_len = 0;
 int Stelle = 0;
