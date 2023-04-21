@@ -15,28 +15,23 @@ bool wait = false;
 
 #include <WiFi.h>             
 #include <WiFiClientSecure.h>
-#include <WiFiMulti.h>
-WiFiMulti wifiMulti;
 
-const char* ssid     = "xxxxx"; // hier eigenen WLan_Namen eintragen 
-const char* password = "xxxxx"; // hier eigenes WLan_Passwort eintragen 
+const char* ssid     = "xxxx"; // hier eigenen WLan_Namen eintragen 
+const char* password = "xxxx"; // hier eigenes WLan_Passwort eintragen 
 String WiFi_name;
 unsigned long previousMillis = 0;
 unsigned long interval = 30000;
 int WiFi_Count;
 
-String token = "xxxxx";         // hier openAI API Key eintragen 
+String token = "xxxx";         // hier openAI API Key eintragen 
 int max_tokens = 256;
-//int max_tokens = 1024;
-char Nachricht_array[5000];
+char Nachricht_array[256];
 
 String Eingabe = "";
 String Ausgabe = "";
 int Zeilenlaenge = 70;
 String Feedback = "";
 int Nachricht_len = 0;
-//int merker_2 = 0;
-//int more = 0;
 int Stelle = 0;
 int Sonderzeichen;
 
@@ -48,7 +43,15 @@ void setup()
   Serial.println("geht los ...");
   pinMode(RTS_PIN, INPUT);
   erika.begin(ERIKA_BAUD);
-  WiFi_Init();
+  // Mit dem WLan verbinden 
+  WiFi.mode(WIFI_STA); 
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi .."); 
+  while (WiFi.status() != WL_CONNECTED) { 
+    Serial.print('.'); 
+    delay(1000); 
+  } 
+  Serial.println(WiFi.localIP());   
   while (erika.read() > 0) Serial.println("Startup Zeichen leeren");
   erika.write(ascii2ddr['\n']);
 }
@@ -104,25 +107,127 @@ void loop(){
     char Zeichen = ' ';
     char Umlaut = ' ';
     Zeichen = ddr2ascii[Zeichen_nummer];
-    // Do nothing bei:
-    if (Zeichen_nummer == 114); // Backtab
-    if (Zeichen_nummer == 117); // Einzug
-    if (Zeichen_nummer == 118); // Papier zurück
-    if (Zeichen_nummer == 121); // Tab
-    if (Zeichen_nummer == 252); // Korrektur
 
-    if (Zeichen_nummer == 101) { Zeichen = 'a'; Umlaut = 'e'; }
-    if (Zeichen_nummer == 102) { Zeichen = 'o'; Umlaut = 'e'; }
-    if (Zeichen_nummer == 103) { Zeichen = 'u'; Umlaut = 'e'; }
-    if (Zeichen_nummer == 71)  { Eingabe = Eingabe + 's'; Zeichen = 's'; }
-    if (Umlaut == 'e')  { Eingabe = Eingabe + Umlaut; }
-    if (Zeichen == 's') {Eingabe = Eingabe + Zeichen; }
-
-    if (Zeichen != '\n') {
-      Eingabe = Eingabe + Zeichen;
-     }
+    switch (Zeichen_nummer) {
+      case 71:  { Eingabe = Eingabe + "ss"; break; } // Eszett zu ss
+      case 101: { Eingabe = Eingabe + "ae"; break; } // ä zu ae
+      case 102: { Eingabe = Eingabe + "oe"; break; } // ö zu oe
+      case 103: { Eingabe = Eingabe + "ue"; break; } // ü zu ue
+      case 114: { break; }                           // Backtab ignorierenn
+      case 117: { break; }                           // Einzug ignorieren
+      case 118: { break; }                           // Papier zurück ignorieren
+      case 119: { break; }                           // Newline hier ignorieren
+      case 121: { break; }                           // Tab ignorieren
+      default: {                                   // Druckbare Zeichen anhängen 
+        if (Zeichen_nummer > 127) {} // do nothing
+        else {Eingabe = Eingabe + Zeichen; }
+        break;
+      }
+    }
     if (Zeichen == '\n') {
-      Serial.println(openAI_text(Eingabe));
+      Serial.println(Eingabe);
+      
+      String getResponse = "";
+      int merker = 0;
+    
+      Serial.println("Sending API Request...");
+    
+      WiFiClientSecure client_tcp;
+      client_tcp.setInsecure();   //run version 1.0.5 or above
+    
+      String request = "{\"model\":\"text-davinci-003\",\"prompt\":\"" + Eingabe + "\",\"temperature\":0.7,\"max_tokens\":" + String(max_tokens) + ",\"frequency_penalty\":0,\"presence_penalty\":0.6,\"top_p\":1.0}";
+      Serial.print("request: "); Serial.println(request);
+    
+      if (client_tcp.connect("api.openai.com", 443)) {
+        client_tcp.println("POST /v1/completions HTTP/1.1");
+        client_tcp.println("Connection: close");
+        client_tcp.println("Host: api.openai.com");
+        client_tcp.println("Authorization: Bearer " + token);
+        client_tcp.println("Content-Type: application/json; charset=utf-8");
+        client_tcp.println("Content-Length: " + String(request.length()));
+        client_tcp.println();
+        client_tcp.println(request);
+    
+        boolean state = false;
+        int waitTime = 40000;   // timeout 40 seconds
+        long startTime = millis();
+        while ((startTime + waitTime) > millis()) {
+          Serial.print(".");
+          erika.write(ascii2ddr['.']);
+          delay(1000);
+          while (client_tcp.available()) {
+              char c = client_tcp.read();
+              if (state==true) {
+                Feedback += String(c);
+                if (Feedback.indexOf("\"text\":\"\\n\\n")!=-1)
+                    Feedback = "";
+                if (Feedback.indexOf("\",\"index\"")!=-1) {
+                  client_tcp.stop();
+                  Serial.println();
+                  Feedback = Feedback.substring(0,Feedback.length()-9);
+                  //Serial.print("Feedback: "); Serial.println(Feedback);
+                }
+              }
+              if (c == '\n') {
+                if (getResponse.length()==0) state=true;
+                getResponse = "";
+              }
+              else if (c != '\r')
+                getResponse += String(c);
+              startTime = millis();
+            }
+            if (getResponse.length()>0) break;
+        }
+        client_tcp.stop();
+      }
+      else Serial.println("Connection failed");
+      // Ende ChatGPT
+    
+      erika.write(ascii2ddr['\n']);
+      Nachricht_len = Feedback.length()+1;
+      Serial.print("Nachricht_len: "); Serial.println(Nachricht_len);
+      Feedback.toCharArray(Nachricht_array, Nachricht_len);
+    
+      for (int j=0; j<=Nachricht_len; j++){
+        delay(1);
+        if (Nachricht_array[j] == '\\' && Nachricht_array[j+1] == 'n' && Nachricht_array[j+2] == '\\' && Nachricht_array[j+3] == 'n')
+        {
+          Nachricht_array[j]   = ' ';
+          Nachricht_array[j+1] = '\n';
+          Nachricht_array[j+2] = ' ';
+          Nachricht_array[j+3] = '\n';
+        }
+      }
+    
+      for (int j=0; j<=Nachricht_len; j++){
+        delay(1);
+        if (Nachricht_array[j] == '\\' && Nachricht_array[j+1] == 'n' && Nachricht_array[j+2] != '\\' && Nachricht_array[j+3] != 'n')
+        {
+          Nachricht_array[j]   = ' ';
+          Nachricht_array[j+1] = '\n';
+        }
+      }
+    
+      // CR setzen bei erreichen Zeilenlaenge
+      for (int i = 0; i <= Nachricht_len; i++){
+        if (Nachricht_array[i] == ' ') {
+          for (int j = i + 1; j <= Nachricht_len; j++){
+            if (Nachricht_array[j] == ' '  || j == Nachricht_len) {
+              if (j <= Zeilenlaenge + merker) i = j;
+              if (j > Zeilenlaenge + merker) {
+                Nachricht_array[i] = '\n';
+                merker = i + 1;
+              }
+            }
+            if (Nachricht_array[j] == '\n') {
+              merker = i + 1;
+              i = j;
+            }
+          }
+        }
+      }
+    
+      Serial.println("Nachricht_array: "); Serial.println(Nachricht_array);
       Eingabe = "";
     }
   }
