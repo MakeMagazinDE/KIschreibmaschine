@@ -24,12 +24,12 @@ unsigned long interval = 30000;
 int WiFi_Count;
 
 String token = "xxxx";         // hier openAI API Key eintragen 
-int max_tokens = 256;
-char Nachricht_array[4196];
+int max_tokens = 256;          // Für längere Antworten erhöhen
+char Nachricht_array[4096];    // Bei größeren max_tokens das Nachricht_array auch vergrößern
 
 String Eingabe = "";
 String Ausgabe = "";
-int Zeilenlaenge = 70; // Verkürzen, falls Zeichen auf dem Ausdruck abgeschnitten werden
+int Zeilenlaenge = 70;         // Auf der Erika ausgegebene Zeichen pro Zeile. Verringern falls Zeichen abgeschnitten werden
 String Feedback = "";
 int Nachricht_len = 0;
 int Stelle = 0;
@@ -58,48 +58,7 @@ void setup()
 
 void loop(){
 
-  if (Nachricht_len > 0)
-  {
-    int rtsState = digitalRead(RTS_PIN);
-    int result = 0;
-    int result_2 = 0;
-
-    if (rtsState == LOW && wait == false){
-      char Zeichen = Nachricht_array[Stelle];
-      //Serial.print("Stelle: "); Serial.print(Stelle);
-      result = ascii2ddr[Zeichen];
-      //Serial.print(" - result: "); Serial.print(result);
-      char Zeichen_2 = Nachricht_array[Stelle + 1];
-      result_2 = ascii2ddr[Zeichen_2];
-      //Serial.print(" - result_2: "); Serial.println(result_2);
-      if (result == 34 && result_2 == 41) {erika.write(0x47); Sonderzeichen = 1;} //ß
-      else if (result == 34 && result_2 == 75) {erika.write(0x65); Sonderzeichen = 1;}//ä
-      else if (result == 34 && result_2 == 82) {erika.write(0x66); Sonderzeichen = 1;}//ö
-      else if (result == 34 && result_2 == 150) {erika.write(0x67); Sonderzeichen = 1;}//ü
-      else if (result == 34 && result_2 == 32) {erika.write(0x3F); Sonderzeichen = 1;}//Ä
-      else if (result == 34 && result_2 == 77) {erika.write(0x3C); Sonderzeichen = 1;}//Ö
-      else if (result == 34 && result_2 == 71) {erika.write(0x3A); Sonderzeichen = 1;}//Ü
-      else if (result == 33 && result_2 == 65) {erika.write(0x39); Sonderzeichen = 1;}//°
-      else if (result == 33 && result_2 == 124) {erika.write(0x3D); Sonderzeichen = 1;}//§
-      else if (Sonderzeichen == 1) Sonderzeichen = 0;
-      else erika.write(result);
-      Stelle = Stelle + 1;
-      wait = true;
-      delay(100);
-    }
-    else
-    {
-      //rts was high, which means erika is ready for the next byte, when rts goes low again
-      wait = false;
-    }
-   if (Stelle == Nachricht_len) {
-      Nachricht_len = 0;
-      Stelle = 0;
-      erika.write(ascii2ddr['\n']); erika.write(ascii2ddr['\n']);
-      while (erika.read() > 0) Serial.println("Ende Zeichen leeren");
-    }
-  }
-
+  // EINGABE ###############################################################################
   if (erika.available())
   {
     int Zeichen_nummer = erika.read();
@@ -225,10 +184,52 @@ void loop(){
             }
           }
         }
-      }
-    
+      }    
       Serial.println("Nachricht_array: "); Serial.println(Nachricht_array);
       Eingabe = "";
     }
   }
+  // EINGABE ENDE ##########################################################################
+
+  // AUSGABE ###############################################################################
+  if (Nachricht_len > 0)
+  {
+    int rtsState = digitalRead(RTS_PIN);
+    int result = 0;
+    int result_2 = 0;
+
+    if (rtsState == LOW && wait == false){
+      char Zeichen = Nachricht_array[Stelle];
+      result = ascii2ddr[Zeichen];
+      char Zeichen_2 = Nachricht_array[Stelle + 1];
+      result_2 = ascii2ddr[Zeichen_2];
+      if (result == 34 && result_2 == 41) {erika.write(0x47); Sonderzeichen = 1;} //ß
+      else if (result == 34 && result_2 == 75) {erika.write(0x65); Sonderzeichen = 1;}//ä
+      else if (result == 34 && result_2 == 82) {erika.write(0x66); Sonderzeichen = 1;}//ö
+      else if (result == 34 && result_2 == 150){erika.write(0x67); Sonderzeichen = 1;}//ü
+      else if (result == 34 && result_2 == 32) {erika.write(0x3F); Sonderzeichen = 1;}//Ä
+      else if (result == 34 && result_2 == 77) {erika.write(0x3C); Sonderzeichen = 1;}//Ö
+      else if (result == 34 && result_2 == 71) {erika.write(0x3A); Sonderzeichen = 1;}//Ü
+      else if (result == 33 && result_2 == 65) {erika.write(0x39); Sonderzeichen = 1;}//°
+      else if (result == 33 && result_2 == 124){erika.write(0x3D); Sonderzeichen = 1;}//§
+      else if (Sonderzeichen == 1) Sonderzeichen = 0;
+      else erika.write(result);
+      Stelle = Stelle + 1;
+      wait = true;
+      delay(100);
+    }
+    else
+    {
+      //rts was high, which means erika is ready for the next byte, when rts goes low again
+      wait = false;
+    }
+   if (Stelle == Nachricht_len) {
+      Nachricht_len = 0;
+      Stelle = 0;
+      erika.write(ascii2ddr['\n']); erika.write(ascii2ddr['\n']);
+      while (erika.read() > 0) Serial.println("Ende Zeichen leeren");
+    }
+  }
+  // AUSGABE ENDE ##########################################################################  
+  
 }
