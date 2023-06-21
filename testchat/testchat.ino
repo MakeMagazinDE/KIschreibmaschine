@@ -58,6 +58,7 @@ void loop() {
               char c = client_tcp.read();
               if (state==true) {
                 Feedback += String(c);
+              // Update 21.06.2023
               // Anpassung wg. Chat-GPT:
               if (Feedback.indexOf("\"text\":")!=-1)
                   Feedback = ""; 
