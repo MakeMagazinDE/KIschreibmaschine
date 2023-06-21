@@ -18,4 +18,6 @@ Für den Betrieb der Schreibmaschine als Chatbot wird noch benötigt:
 
 Den Erfahrungsbericht von Daniel Springwald beim Nachbau des Projekts gibt es in seinem [Blog](https://daniel.springwald.de/post/2023/ChatGPT-Schreibmaschine) zu lesen.
 
+Update 21.06.2023: ChatGPT hat die API Schnittstelle geändert. Der neue Code ist im Download Bereich. Danke an Tillmann Cordes für das Code-Update.
+
 Der vollständige Artikel zum Projekt erscheint in der **[Make-Ausgabe 2/23 auf Seite 28](https://www.heise.de/select/make/2023/2/2305908191709481329)** und auf **[heise+](https://heise.de/-7545547)**.
