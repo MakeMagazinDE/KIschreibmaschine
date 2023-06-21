@@ -114,17 +114,20 @@ void loop(){
           Serial.print(".");
           erika.write(ascii2ddr['.']);
           delay(1000);
+          // UPDATE 21.06.2023
           while (client_tcp.available()) {
               char c = client_tcp.read();
               if (state==true) {
                 Feedback += String(c);
-                if (Feedback.indexOf("\"text\":\"\\n\\n")!=-1)
-                    Feedback = "";
-                if (Feedback.indexOf("\",\"index\"")!=-1) {
-                  client_tcp.stop();
-                  Serial.println();
-                  Feedback = Feedback.substring(0,Feedback.length()-9);
-                  //Serial.print("Feedback: "); Serial.println(Feedback);
+              // Anpassung wg. Chat-GPT Änderung:
+              if (Feedback.indexOf("\"text\":")!=-1)
+                  Feedback = ""; 
+              // Anpassung wg. Chat-GPT Änderung:
+              if (Feedback.indexOf("\"index\":")!=-1) {
+                client_tcp.stop(); 
+                Serial.println();
+                // Anpassung wg. Chat-GPT Änderung:
+                Feedback = Feedback.substring(6,Feedback.length()-17); 
                 }
               }
               if (c == '\n') {
