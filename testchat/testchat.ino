@@ -54,27 +54,29 @@ void loop() {
       while ((startTime + waitTime) > millis()) { 
         Serial.print("."); 
         delay(200);       
-        while (client_tcp.available()) { 
-            char c = client_tcp.read(); 
-            if (state==true) { 
-              // Die Ausgabevariable "Feedback" wird gefüllt 
-              Feedback += String(c); 
-              if (Feedback.indexOf("\"text\":\"\\n\\n")!=-1) 
+          while (client_tcp.available()) {
+              char c = client_tcp.read();
+              if (state==true) {
+                Feedback += String(c);
+              // Anpassung wg. Chat-GPT:
+              if (Feedback.indexOf("\"text\":")!=-1)
                   Feedback = ""; 
-              if (Feedback.indexOf("\",\"index\"")!=-1) { 
+              // Anpassung wg. Chat-GPT:
+              if (Feedback.indexOf("\"index\":")!=-1) {
                 client_tcp.stop(); 
-                Serial.println(); 
-                Feedback = Feedback.substring(0,Feedback.length()-9); 
-              } 
-            } 
-            if (c == '\n') { 
-              if (getResponse.length()==0) state=true; 
-              getResponse = ""; 
-            } 
-            else if (c != '\r') 
-            getResponse += String(c); 
-            startTime = millis(); 
-          } 
+                Serial.println();
+                // Anpassung wg. Chat-GPT:
+                Feedback = Feedback.substring(6,Feedback.length()-17); 
+                }
+              }
+              if (c == '\n') {
+                if (getResponse.length()==0) state=true;
+                getResponse = "";
+              }
+              else if (c != '\r')
+                getResponse += String(c);
+              startTime = millis();
+            }
           if (getResponse.length()>0) break; 
       } 
       client_tcp.stop(); 
